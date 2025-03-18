@@ -1,0 +1,20 @@
+# Ignore environment files
+.env
+
+# Ignore AWS credentials
+aws_credentials.json
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore log files
+*.log
+*.out
+*.err
+# Ignore VS Code settings (optional)
+.vscode/
