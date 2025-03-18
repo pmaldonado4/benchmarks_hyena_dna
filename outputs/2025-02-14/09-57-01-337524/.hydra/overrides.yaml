@@ -1,0 +1,17 @@
+- wandb.project=hyena-dna-genomic-benchmark-demo_coding_vs_intergenomic_seqs
+- +wandb.entity=gregg_lab
+- experiment=hg38/genomic_benchmark
+- +dataset_name=demo_coding_vs_intergenomic_seqs
+- train.pretrained_model_path=/u/pmaldonadocatala/hyena-dna/weights/model.ckpt
+- dataset.max_length=500
+- ++model.layer.l_max=32004
+- ++model.d_model=256
+- ++model.n_layer=4
+- ++model.resid_dropout=0.2
+- ++model.embed_dropout=0.3
+- ++dataset.batch_size=256
+- ++optimizer.weight_decay=0.001
+- optimizer.lr=1e-5
+- trainer.devices=1
+- trainer.num_nodes=1
+- trainer.accelerator=gpu

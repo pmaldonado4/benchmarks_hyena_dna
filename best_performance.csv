@@ -1,0 +1,16 @@
+dataset,model_type,best_accuracy,best_loss
+human_ensembl_regulatory,standard,82.83055810649248,0.35605671977057624
+human_ensembl_regulatory,standard,81.13423318836311,0.3689720652602043
+human_ensembl_regulatory,standard,78.65472250619445,0.4234599782750205
+human_ensembl_regulatory,standard,82.00405454576958,0.40076485542196394
+dummy_mouse_enhancers_ensembl,standard,33.88429752066116,1.1502532064914703
+dummy_mouse_enhancers_ensembl,standard,30.165289256198346,1.2831764817237854
+dummy_mouse_enhancers_ensembl,metabolic,32.231404958677686,1.1049476861953735
+dummy_mouse_enhancers_ensembl,standard,27.272727272727273,1.109452486038208
+dummy_mouse_enhancers_ensembl,metabolic,50.0,0.7221680283546448
+dummy_mouse_enhancers_ensembl,standard,31.40495867768595,1.2339094281196594
+dummy_mouse_enhancers_ensembl,metabolic,50.0,1.1187567859888077
+human_ensembl_regulatory,metabolic,80.14138928837524,0.4176349860710511
+human_ensembl_regulatory,metabolic,81.99539098643287,0.38163116170207995
+human_ensembl_regulatory,metabolic,81.45131946008698,0.38570827496557775
+human_ensembl_regulatory,metabolic,79.05151352381613,0.40518355828668495
