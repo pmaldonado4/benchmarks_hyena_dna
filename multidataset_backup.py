@@ -1,5 +1,3 @@
-# %%
-print("Starting imports...")
 #@title Imports
 # for HyenaDNA specifically
 import torch
@@ -14,6 +12,11 @@ from functools import partial
 from torch import Tensor
 from torchvision.ops import StochasticDepth
 from collections import namedtuple
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+import datetime  # Add datetime import
+import wandb  # Add wandb import
 
 """# HyenaDNA
 
@@ -999,10 +1002,14 @@ class HyenaDNAPreTrainedModel(PreTrainedModel):
             if config is None:
                 config = json.load(open(os.path.join(pretrained_model_name_or_path, 'config.json')))
 
-        scratch_model = HyenaDNAModel(**config, use_head=use_head, n_classes=n_classes)  # the new model format
+        # Create model with device specified in factory_kwargs
+        factory_kwargs = {'device': device, 'dtype': torch.float32}
+        scratch_model = HyenaDNAModel(**config, use_head=use_head, n_classes=n_classes, **factory_kwargs)
+        
+        # Load checkpoint
         loaded_ckpt = torch.load(
             os.path.join(pretrained_model_name_or_path, 'weights.ckpt'),
-            map_location=torch.device(device)
+            map_location=device
         )
 
         # need to load weights slightly different if using gradient checkpointing
@@ -1016,6 +1023,10 @@ class HyenaDNAPreTrainedModel(PreTrainedModel):
 
         # scratch model has now been updated
         scratch_model.load_state_dict(state_dict)
+        
+        # Ensure model is on the correct device
+        scratch_model = scratch_model.to(device)
+        
         print("Loaded pretrained weights ok!")
         return scratch_model
 
@@ -1232,9 +1243,9 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self,
         split,
         max_length,
-        dataset_name='dummy_mouse_enhancers_ensembl',
+        dataset_name='human_enhancers_cohn',
         d_output=2, # default binary classification
-        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks/", # default for colab
+        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks", # default for colab
         tokenizer=None,
         tokenizer_name=None,
         use_padding=None,
@@ -1337,137 +1348,319 @@ def test(model, device, test_loader, loss_fn):
     model.eval()
     test_loss = 0
     correct = 0
+    total_samples = 0
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += loss_fn(output, target.squeeze()).item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            test_loss += loss_fn(output, target.squeeze()).item()
+            pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
+            total_samples += target.size(0)  # Count actual samples in this batch
 
-    test_loss /= len(test_loader.dataset)
+    test_loss /= total_samples  # Use actual sample count instead of dataset length
+    accuracy = 100. * correct / total_samples
+    return test_loss, accuracy
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+def log_results_to_csv(dataset_name, model_name, accuracy, loss, csv_file="benchmark_results.csv"):
+    """Log results to CSV file."""
+    import csv
+    import os
+    from datetime import datetime
+    
+    # Create CSV file if it doesn't exist
+    if not os.path.exists(csv_file):
+        with open(csv_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Timestamp', 'Dataset', 'Model', 'Accuracy', 'Loss'])
+    
+    # Append results
+    with open(csv_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
+                        dataset_name, model_name, accuracy, loss])
 
-import json
-import os
-import subprocess
-import transformers
-from transformers import PreTrainedModel, AutoModelForCausalLM, PretrainedConfig
-
-print("Starting training...")
-# %%
-
-def run_train():
-
-    '''
-    Main entry point for training.  Select the dataset name and metadata, as
-    well as model and training args, and you're off to the genomic races!
-
-    ### GenomicBenchmarks Metadata
-    # there are 8 datasets in this suite, choose 1 at a time, with their corresponding settings
-    # name                                num_seqs        num_classes     median len    std
-    # dummy_mouse_enhancers_ensembl       1210            2               2381          984.4
-    # demo_coding_vs_intergenomic_seqs    100_000         2               200           0
-    # demo_human_or_worm                  100_000         2               200           0
-    # human_enhancers_cohn                27791           2               500           0
-    # human_enhancers_ensembl             154842          2               269           122.6
-    # human_ensembl_regulatory            289061          3               401           184.3
-    # human_nontata_promoters             36131           2               251           0
-    # human_ocr_ensembl                   174756          2               315           108.1
-
-    '''
-    # experiment settings:
-    num_epochs = 100  # ~100 seems fine
-    max_length = 500  # max len of sequence of dataset (of what you want)
-    use_padding = True
-    dataset_name = 'dummy_mouse_enhancers_ensembl'
-    batch_size = 256
-    learning_rate = 6e-4  # good default for Hyena
-    rc_aug = True  # reverse complement augmentation
-    add_eos = False  # add end of sentence token
-    weight_decay = 0.1
-
-    # for fine-tuning, only the 'tiny' model can fit on colab
-    pretrained_model_name = 'hyenadna-tiny-1k-seqlen'  # use None if training from scratch
-
-    # we need these for the decoder head, if using
-    use_head = True
-    n_classes = 2
-
-    # you can override with your own backbone config here if you want,
-    # otherwise we'll load the HF one by default
-    backbone_cfg = None
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
-
-    # instantiate the model (pretrained here)
-    if pretrained_model_name in ['hyenadna-tiny-1k-seqlen']:
-        # use the pretrained Huggingface wrapper instead
-        model = HyenaDNAPreTrainedModel.from_pretrained(
-            '/projects/bdhi/benchmarks_hyena_dna/checkpoints/',
-            pretrained_model_name,
-            download=False,
-            config=backbone_cfg,
-            device=device,
-            use_head=use_head,
-            n_classes=n_classes,
-        )
-
-    # from scratch
+def main():
+    """Main function to handle distributed training setup."""
+    # Initialize rank and world_size
+    rank = int(os.environ.get("SLURM_PROCID", 0))
+    world_size = int(os.environ.get("SLURM_NTASKS", 1))
+    local_rank = int(os.environ.get("SLURM_LOCALID", 0))
+    
+    if rank == 0:
+        print("Starting distributed training...")
+    
+    # Initialize distributed training
+    if world_size > 1:
+        # Set up device
+        torch.cuda.set_device(local_rank)
+        device = torch.device(f"cuda:{local_rank}")
+        
+        # Initialize distributed process group with gloo backend
+        try:
+            dist.init_process_group(
+                backend="gloo",  # Use gloo instead of nccl
+                init_method="env://",
+                world_size=world_size,
+                rank=rank,
+                timeout=datetime.timedelta(minutes=30)  # Increase timeout
+            )
+        except Exception as e:
+            print(f"Error initializing distributed process group: {e}")
+            print("Falling back to single GPU training")
+            world_size = 1
+            rank = 0
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     else:
-        model = HyenaDNAModel(**backbone_cfg, use_head=use_head, n_classes=n_classes)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # Run training
+    run_train(rank, world_size, device)
 
-    # create tokenizer
-    tokenizer = CharacterTokenizer(
-        characters=['A', 'C', 'G', 'T', 'N'],  # add DNA characters, N is uncertain
-        model_max_length=max_length + 2,  # to account for special tokens, like EOS
-        add_special_tokens=False,  # we handle special tokens elsewhere
-        padding_side='left', # since HyenaDNA is causal, we pad on the left
-    )
+def run_train(rank, world_size, device):
+    """
+    Run training on specified datasets with specified models.
+    """
+    # Dataset metadata
+    dataset_metadata = {
+        'dummy_mouse_enhancers_ensembl': {'max_length': 1000, 'n_classes': 2},
+        #'demo_coding_vs_intergenomic_seqs': {'max_length': 200, 'n_classes': 2},
+        #'demo_human_or_worm': {'max_length': 200, 'n_classes': 2},
+        'human_enhancers_cohn': {'max_length': 500, 'n_classes': 2},
+        #'human_enhancers_ensembl': {'max_length': 300, 'n_classes': 2},
+        #'human_ensembl_regulatory': {'max_length': 400, 'n_classes': 3},
+        #'human_nontata_promoters': {'max_length': 300, 'n_classes': 2},
+        #'human_ocr_ensembl': {'max_length': 400, 'n_classes': 2},
+    }
+    
+    # Model configurations
+    model_configs = {
+        'hyenadna-tiny-1k-seqlen': {
+            'pretrained': True,
+            'config': '/projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-tiny-1k-seqlen/config.json'
+        },
+        'hyenadna-metabolic-1k': {
+            'pretrained': True,
+            'config': '/projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-metabolic-1k/config.json'
+        }
+    }
+    
+    # Training hyperparameters
+    num_epochs = 100
+    batch_size = 256
+    learning_rate = 6e-4
+    weight_decay = 0.1
+    rc_aug = True
+    add_eos = False
+    use_head = True
+    
+    # Initialize wandb only on rank 0
+    if rank == 0:
+        wandb.init(
+            project="hyena-dna-benchmarks",
+            config={
+                "num_epochs": num_epochs,
+                "batch_size": batch_size,
+                "learning_rate": learning_rate,
+                "weight_decay": weight_decay,
+                "rc_aug": rc_aug,
+                "add_eos": add_eos,
+                "world_size": world_size,
+                "model_configs": model_configs,
+                "dataset_metadata": dataset_metadata
+            }
+        )
+    
+    for dataset_name, metadata in dataset_metadata.items():
+        if rank == 0:
+            print(f"\n{'='*50}")
+            print(f"Training on dataset: {dataset_name}")
+            print(f"{'='*50}")
+            # Set dataset name in wandb
+            wandb.run.name = f"{dataset_name}-{wandb.run.id}"
+        
+        max_length = metadata['max_length']
+        n_classes = metadata['n_classes']
+        
+        # Create tokenizer and datasets
+        tokenizer = CharacterTokenizer(
+            characters=['A', 'C', 'G', 'T', 'N'],
+            model_max_length=max_length + 2,
+            add_special_tokens=False,
+            padding_side='left'
+        )
+        
+        ds_train = GenomicBenchmarkDataset(
+            max_length=max_length,
+            use_padding=True,
+            split='train',
+            tokenizer=tokenizer,
+            dataset_name=dataset_name,
+            rc_aug=rc_aug,
+            add_eos=add_eos
+        )
+        
+        ds_test = GenomicBenchmarkDataset(
+            max_length=max_length,
+            use_padding=True,
+            split='test',
+            tokenizer=tokenizer,
+            dataset_name=dataset_name,
+            rc_aug=rc_aug,
+            add_eos=add_eos
+        )
+        
+        if rank == 0:
+            print(f"Dataset sizes - Train: {len(ds_train)}, Test: {len(ds_test)}")
+            wandb.log({
+                "dataset/train_size": len(ds_train),
+                "dataset/test_size": len(ds_test),
+                "dataset/max_length": max_length,
+                "dataset/n_classes": n_classes
+            })
+        
+        # Create distributed samplers and dataloaders
+        train_sampler = DistributedSampler(ds_train, num_replicas=world_size, rank=rank)
+        test_sampler = DistributedSampler(ds_test, num_replicas=world_size, rank=rank)
+        
+        train_loader = DataLoader(
+            ds_train, 
+            batch_size=batch_size // world_size,
+            sampler=train_sampler,
+            num_workers=4,
+            pin_memory=True
+        )
+        
+        test_loader = DataLoader(
+            ds_test, 
+            batch_size=batch_size // world_size,
+            sampler=test_sampler,
+            num_workers=4,
+            pin_memory=True
+        )
+        
+        for model_name, model_config in model_configs.items():
+            if rank == 0:
+                print(f"\nInitializing model: {model_name}")
+                wandb.log({"model/name": model_name})
+            
+            # Initialize model
+            if model_config['pretrained']:
+                if model_config['config']:
+                    with open(model_config['config'], 'r') as f:
+                        backbone_cfg = json.load(f)
+                else:
+                    backbone_cfg = None
+                    
+                model = HyenaDNAPreTrainedModel.from_pretrained(
+                    '/projects/bdhi/benchmarks_hyena_dna/checkpoints/',
+                    model_name,
+                    download=False,
+                    config=backbone_cfg,
+                    device=device,
+                    use_head=use_head,
+                    n_classes=n_classes
+                )
+            else:
+                model = HyenaDNAModel(**backbone_cfg, use_head=use_head, n_classes=n_classes)
+                model = model.to(device)
+            
+            # Wrap model in DDP
+            if world_size > 1:
+                model = DDP(model, device_ids=[rank], output_device=rank)
+            
+            loss_fn = nn.CrossEntropyLoss()
+            optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+            
+            best_accuracy = 0
+            best_loss = float('inf')
+            
+            if rank == 0:
+                print("\nStarting training...")
+                print(f"{'Epoch':^6} {'Train Loss':^12} {'Test Loss':^12} {'Accuracy':^10}")
+                print("-" * 42)
+            
+            for epoch in range(num_epochs):
+                if world_size > 1:
+                    train_sampler.set_epoch(epoch)
+                
+                # Training
+                model.train()
+                train_loss = 0
+                for batch_idx, (data, target) in enumerate(train_loader):
+                    data, target = data.to(device), target.to(device)
+                    optimizer.zero_grad()
+                    output = model(data)
+                    loss = loss_fn(output, target.squeeze())
+                    loss.backward()
+                    optimizer.step()
+                    train_loss += loss.item()
+                    
+                    # Log batch-level metrics on rank 0
+                    if rank == 0 and batch_idx % 10 == 0:
+                        wandb.log({
+                            f"train/batch_loss": loss.item(),
+                            "train/epoch": epoch + 1,
+                            "train/batch": batch_idx
+                        })
+                
+                # Average training loss
+                train_loss /= len(train_loader)
+                
+                # Testing
+                test_loss, accuracy = test(model, device, test_loader, loss_fn)
+                
+                # Gather results from all processes
+                if world_size > 1:
+                    test_loss_tensor = torch.tensor([test_loss], device=device)
+                    accuracy_tensor = torch.tensor([accuracy], device=device)
+                    train_loss_tensor = torch.tensor([train_loss], device=device)
+                    dist.all_reduce(test_loss_tensor, op=dist.ReduceOp.SUM)
+                    dist.all_reduce(accuracy_tensor, op=dist.ReduceOp.SUM)
+                    dist.all_reduce(train_loss_tensor, op=dist.ReduceOp.SUM)
+                    test_loss = test_loss_tensor.item() / world_size
+                    accuracy = accuracy_tensor.item() / world_size
+                    train_loss = train_loss_tensor.item() / world_size
+                
+                if rank == 0:
+                    print(f"{epoch+1:^6d} {train_loss:^12.4f} {test_loss:^12.4f} {accuracy:^10.2f}%")
+                    
+                    # Log epoch-level metrics
+                    wandb.log({
+                        "train/epoch_loss": train_loss,
+                        "test/epoch_loss": test_loss,
+                        "test/accuracy": accuracy,
+                        "train/epoch": epoch + 1
+                    })
+                    
+                    if accuracy > best_accuracy:
+                        best_accuracy = accuracy
+                        best_loss = test_loss
+                        print(f"New best accuracy: {best_accuracy:.2f}%")
+                        # Log best metrics
+                        wandb.log({
+                            "best/accuracy": best_accuracy,
+                            "best/test_loss": best_loss,
+                            "best/epoch": epoch + 1
+                        })
+            
+            if rank == 0:
+                print(f"\nCompleted {dataset_name} with {model_name}")
+                print(f"Best accuracy: {best_accuracy:.2f}%, Loss: {best_loss:.4f}")
+                log_results_to_csv(dataset_name, model_name, best_accuracy, best_loss)
+                
+                # Log final metrics
+                wandb.log({
+                    "final/accuracy": best_accuracy,
+                    "final/test_loss": best_loss,
+                    "final/epoch": num_epochs
+                })
+    
+    if world_size > 1:
+        dist.destroy_process_group()
+    
+    if rank == 0:
+        wandb.finish()
 
-    # create datasets
-    ds_train = GenomicBenchmarkDataset(
-        max_length = max_length,
-        use_padding = use_padding,
-        split = 'train',
-        tokenizer=tokenizer,
-        dataset_name=dataset_name,
-        rc_aug=rc_aug,
-        add_eos=add_eos,
-    )
-
-    ds_test = GenomicBenchmarkDataset(
-        max_length = max_length,
-        use_padding = use_padding,
-        split = 'test',
-        tokenizer=tokenizer,
-        dataset_name=dataset_name,
-        rc_aug=rc_aug,
-        add_eos=add_eos,
-    )
-
-    train_loader = DataLoader(ds_train, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(ds_test, batch_size=batch_size, shuffle=False)
-
-    # loss function
-    loss_fn = nn.CrossEntropyLoss()
-
-    # create optimizer
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-    model.to(device)
-
-    for epoch in range(num_epochs):
-        train(model, device, train_loader, optimizer, epoch, loss_fn)
-        test(model, device, test_loader, loss_fn)
-        optimizer.step()
-
-# launch it!
-run_train()  # uncomment to run
-
-
-
+if __name__ == "__main__":
+    main()

@@ -1383,7 +1383,7 @@ def run_train():
     num_epochs = 100  # ~100 seems fine
     max_length = 500  # max len of sequence of dataset (of what you want)
     use_padding = True
-    dataset_name = 'dummy_mouse_enhancers_ensembl'
+    dataset_name = 'human_enhancers_cohn'
     batch_size = 256
     learning_rate = 6e-4  # good default for Hyena
     rc_aug = True  # reverse complement augmentation

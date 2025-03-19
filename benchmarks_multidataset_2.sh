@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --job-name="hyena_benchmark"
-#SBATCH --output="benchmark.out.%j.out"
+#SBATCH --output="benchmark.out.%j.%N.out"
 #SBATCH --partition=gpuA100x4
 #SBATCH --mem=16G
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=4
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=3
 #SBATCH --gpu-bind=closest
 #SBATCH --account=bdhi-delta-gpu
-#SBATCH -t 03:00:00
+#SBATCH -t 48:00:00
 #SBATCH -e slurm-%j.err
 #SBATCH -o slurm-%j.out
 
@@ -32,6 +32,17 @@ export PYTHONUNBUFFERED=1
 
 # Run the script
 echo "Running script..."
-python benchmark_simple.py  # Update this to match your script's filename
 
-echo "Script finished!"
+# Set up distributed training environment variables
+export MASTER_PORT=29500
+export MASTER_ADDR=$(hostname)
+export WORLD_SIZE=$SLURM_NTASKS
+export RANK=$SLURM_PROCID
+export LOCAL_RANK=$SLURM_LOCALID
+
+# Run the training script with srun
+srun --mpi=pmi2 \
+     --cpu-bind=cores \
+     --distribution=block:block \
+     --hint=nomultithread \
+     python3 benchmarks_multidataset.py
