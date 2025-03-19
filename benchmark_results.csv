@@ -35,3 +35,6 @@ Timestamp,Dataset,Model,Accuracy,Loss
 2025-03-19 16:09:19,dummy_mouse_enhancers_ensembl,hyenadna-tiny-1k-seqlen,79.75206756591797,0.00362988980486989
 2025-03-19 16:14:11,dummy_mouse_enhancers_ensembl,hyenadna-metabolic-1k,83.05785369873047,0.0033865743316709995
 2025-03-19 16:23:57,human_enhancers_cohn,hyenadna-tiny-1k-seqlen,73.10017395019531,0.004268624819815159
+2025-03-19 16:47:11,dummy_mouse_enhancers_ensembl,hyenadna-tiny-1k-seqlen,84.29751586914062,0.0283039640635252,42,968,242
+2025-03-19 16:52:35,dummy_mouse_enhancers_ensembl,hyenadna-metabolic-1k,82.6446304321289,0.08626767992973328,42,968,242
+2025-03-19 17:06:04,human_enhancers_cohn,hyenadna-tiny-1k-seqlen,72.63960266113281,0.03408914804458618,42,20843,6948

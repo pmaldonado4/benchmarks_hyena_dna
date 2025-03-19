@@ -1,0 +1,1 @@
+{"model/name":"hyenadna-tiny-1k-seqlen","train/epoch":1,"dataset/test_size":242,"train/batch_loss":0.6996392607688904,"_wandb":{"runtime":18},"dataset/max_length":1000,"_step":2,"dataset/n_classes":2,"train/batch":0,"dataset/train_size":968,"_timestamp":1.7424203849652054e+09,"_runtime":18.327615715}

@@ -1350,6 +1350,12 @@ def test(model, device, test_loader, loss_fn):
     test_loss = 0
     correct = 0
     total_samples = 0
+    
+    # Check if the dataset is empty
+    if len(test_loader.dataset) == 0:
+        print("Warning: Test dataset is empty!")
+        return float('inf'), 0.0
+        
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
@@ -1357,13 +1363,18 @@ def test(model, device, test_loader, loss_fn):
             test_loss += loss_fn(output, target.squeeze()).item()
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
-            total_samples += target.size(0)  # Count actual samples in this batch
-
-    test_loss /= total_samples  # Use actual sample count instead of dataset length
+            total_samples += target.size(0)
+    
+    # Safety check for zero samples
+    if total_samples == 0:
+        print("Warning: No samples were processed in testing!")
+        return float('inf'), 0.0
+        
+    test_loss /= total_samples
     accuracy = 100. * correct / total_samples
     return test_loss, accuracy
 
-def log_results_to_csv(dataset_name, model_name, accuracy, loss, csv_file="benchmark_results.csv"):
+def log_results_to_csv(dataset_name, model_name, accuracy, loss, train_size, test_size, csv_file="benchmark_results.csv"):
     """Log results to CSV file with additional metadata."""
     import csv
     import os
@@ -1385,8 +1396,8 @@ def log_results_to_csv(dataset_name, model_name, accuracy, loss, csv_file="bench
             accuracy, 
             loss,
             42,  # Fixed random seed
-            len(dataset_splits[dataset_name]['train']),
-            len(dataset_splits[dataset_name]['test'])
+            train_size,
+            test_size
         ])
 
 def main():
@@ -1441,13 +1452,7 @@ def run_train(rank, world_size, device):
     # Dataset metadata
     dataset_metadata = {
         'dummy_mouse_enhancers_ensembl': {'max_length': 1000, 'n_classes': 2},
-        #'demo_coding_vs_intergenomic_seqs': {'max_length': 200, 'n_classes': 2},
-        #'demo_human_or_worm': {'max_length': 200, 'n_classes': 2},
-        #'human_enhancers_cohn': {'max_length': 500, 'n_classes': 2},
-        #'human_enhancers_ensembl': {'max_length': 300, 'n_classes': 2},
-        #'human_ensembl_regulatory': {'max_length': 400, 'n_classes': 3},
-        #'human_nontata_promoters': {'max_length': 300, 'n_classes': 2},
-        #'human_ocr_ensembl': {'max_length': 400, 'n_classes': 2},
+        'human_enhancers_cohn': {'max_length': 500, 'n_classes': 2},
     }
     
     # Model configurations
@@ -1464,7 +1469,7 @@ def run_train(rank, world_size, device):
     
     # Training hyperparameters
     num_epochs = 100
-    batch_size = 256
+    batch_size = 32  # Reduced batch size to avoid dropping too many samples
     learning_rate = 6e-4
     weight_decay = 0.1
     rc_aug = True
@@ -1497,7 +1502,6 @@ def run_train(rank, world_size, device):
             print(f"\n{'='*50}")
             print(f"Training on dataset: {dataset_name}")
             print(f"{'='*50}")
-            wandb.run.name = f"{dataset_name}-{wandb.run.id}"
         
         max_length = metadata['max_length']
         n_classes = metadata['n_classes']
@@ -1543,11 +1547,18 @@ def run_train(rank, world_size, device):
         
         if rank == 0:
             print(f"Dataset sizes - Train: {len(ds_train)}, Test: {len(ds_test)}")
+            print(f"Effective batch size per GPU: {batch_size // world_size}")
+            
+            # Add warning if batch size might be too large
+            if batch_size // world_size > len(ds_train) or batch_size // world_size > len(ds_test):
+                print("Warning: Batch size may be too large for dataset size!")
+            
             wandb.log({
                 "dataset/train_size": len(ds_train),
                 "dataset/test_size": len(ds_test),
                 "dataset/max_length": max_length,
-                "dataset/n_classes": n_classes
+                "dataset/n_classes": n_classes,
+                "training/batch_size_per_gpu": batch_size // world_size
             })
         
         # Create distributed samplers with fixed seeds
@@ -1555,13 +1566,15 @@ def run_train(rank, world_size, device):
             ds_train, 
             num_replicas=world_size, 
             rank=rank,
-            seed=42  # Fixed seed for reproducibility
+            seed=42,
+            shuffle=True  # Explicitly set shuffle
         )
         test_sampler = DistributedSampler(
             ds_test, 
             num_replicas=world_size, 
             rank=rank,
-            seed=42  # Fixed seed for reproducibility
+            seed=42,
+            shuffle=False  # No shuffle for test set
         )
         
         train_loader = DataLoader(
@@ -1570,7 +1583,7 @@ def run_train(rank, world_size, device):
             sampler=train_sampler,
             num_workers=4,
             pin_memory=True,
-            drop_last=True  # Ensure same batch sizes
+            drop_last=False  # Changed to False to keep all samples
         )
         
         test_loader = DataLoader(
@@ -1579,8 +1592,11 @@ def run_train(rank, world_size, device):
             sampler=test_sampler,
             num_workers=4,
             pin_memory=True,
-            drop_last=True  # Ensure same batch sizes
+            drop_last=False  # Changed to False to keep all samples
         )
+        
+        if rank == 0:
+            print(f"Number of batches - Train: {len(train_loader)}, Test: {len(test_loader)}")
         
         for model_name, model_config in model_configs.items():
             if rank == 0:
@@ -1690,7 +1706,14 @@ def run_train(rank, world_size, device):
             if rank == 0:
                 print(f"\nCompleted {dataset_name} with {model_name}")
                 print(f"Best accuracy: {best_accuracy:.2f}%, Loss: {best_loss:.4f}")
-                log_results_to_csv(dataset_name, model_name, best_accuracy, best_loss)
+                log_results_to_csv(
+                    dataset_name, 
+                    model_name, 
+                    best_accuracy, 
+                    best_loss,
+                    len(ds_train),
+                    len(ds_test)
+                )
                 
                 # Log final metrics
                 wandb.log({
