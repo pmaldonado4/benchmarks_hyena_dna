@@ -1,0 +1,59 @@
+_wandb:
+    value:
+        cli_version: 0.19.8
+        m: []
+        python_version: 3.8.20
+        t:
+            "1":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 55
+            "2":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 55
+            "3":
+                - 16
+                - 17
+                - 23
+                - 55
+            "4": 3.8.20
+            "5": 0.19.8
+            "6": 4.26.1
+            "8":
+                - 5
+            "12": 0.19.8
+            "13": linux-x86_64
+add_eos:
+    value: false
+batch_size:
+    value: 256
+dataset_metadata:
+    value:
+        dummy_mouse_enhancers_ensembl:
+            max_length: 1000
+            n_classes: 2
+learning_rate:
+    value: 0.0006
+model_configs:
+    value:
+        hyenadna-metabolic-1k:
+            config: /projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-metabolic-1k/config.json
+            pretrained: true
+        hyenadna-tiny-1k-seqlen:
+            config: /projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-tiny-1k-seqlen/config.json
+            pretrained: true
+num_epochs:
+    value: 100
+random_seed:
+    value: 42
+rc_aug:
+    value: true
+weight_decay:
+    value: 0.1
+world_size:
+    value: 2
