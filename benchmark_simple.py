@@ -1,4 +1,5 @@
-
+# %%
+print("Starting imports...")
 #@title Imports
 # for HyenaDNA specifically
 import torch
@@ -1231,9 +1232,9 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self,
         split,
         max_length,
-        dataset_name='human_enhancers_cohn',
+        dataset_name='dummy_mouse_enhancers_ensembl',
         d_output=2, # default binary classification
-        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks", # default for colab
+        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks/", # default for colab
         tokenizer=None,
         tokenizer_name=None,
         use_padding=None,
@@ -1356,6 +1357,9 @@ import subprocess
 import transformers
 from transformers import PreTrainedModel, AutoModelForCausalLM, PretrainedConfig
 
+print("Starting training...")
+# %%
+
 def run_train():
 
     '''
@@ -1397,7 +1401,7 @@ def run_train():
     # otherwise we'll load the HF one by default
     backbone_cfg = None
 
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
     # instantiate the model (pretrained here)
@@ -1464,3 +1468,6 @@ def run_train():
 
 # launch it!
 run_train()  # uncomment to run
+
+
+

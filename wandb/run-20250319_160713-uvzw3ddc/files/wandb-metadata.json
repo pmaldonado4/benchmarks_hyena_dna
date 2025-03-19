@@ -1,0 +1,114 @@
+{
+  "os": "Linux-4.18.0-477.86.1.el8_8.x86_64-x86_64-with-glibc2.17",
+  "python": "CPython 3.8.20",
+  "startedAt": "2025-03-19T21:07:13.134362Z",
+  "program": "benchmarks_multidataset.py",
+  "codePath": "benchmarks_multidataset.py",
+  "git": {
+    "remote": "https://pmaldonado4:@github.com/pmaldonado4/benchmarks_hyena_dna.git",
+    "commit": "e52aeaf73f279baa44422c8623874287b00a0ab1"
+  },
+  "email": "pmaldonado12@gmail.com",
+  "root": "/projects/bdhi/benchmarks_hyena_dna",
+  "host": "gpua024.delta.ncsa.illinois.edu",
+  "executable": "/projects/bdhi/pmaldonadocatala/envs/hyena-dna-env/bin/python3",
+  "codePathLocal": "benchmarks_multidataset.py",
+  "cpu_count": 64,
+  "cpu_count_logical": 64,
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "gpu_count": 3,
+  "disk": {
+    "/": {
+      "total": "135087431680",
+      "used": "12390391808"
+    }
+  },
+  "memory": {
+    "total": "270174863360"
+  },
+  "cpu": {
+    "count": 64,
+    "countLogical": 64
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA A100-SXM4-40GB",
+      "memoryTotal": "42949672960",
+      "cudaCores": 6912,
+      "architecture": "Ampere"
+    },
+    {
+      "name": "NVIDIA A100-SXM4-40GB",
+      "memoryTotal": "42949672960",
+      "cudaCores": 6912,
+      "architecture": "Ampere"
+    },
+    {
+      "name": "NVIDIA A100-SXM4-40GB",
+      "memoryTotal": "42949672960",
+      "cudaCores": 6912,
+      "architecture": "Ampere"
+    }
+  ],
+  "slurm": {
+    "cluster_name": "delta",
+    "conf": "/var/spool/slurmd/conf-cache/slurm.conf",
+    "cpu_bind": "quiet,mask_cpu:0x000000000000000F,0x00000000000000F0",
+    "cpu_bind_list": "0x000000000000000F,0x00000000000000F0",
+    "cpu_bind_type": "mask_cpu:",
+    "cpu_bind_verbose": "quiet",
+    "cpus_on_node": "8",
+    "cpus_per_task": "4",
+    "distribution": "block:block",
+    "gpus_on_node": "3",
+    "gpus_per_node": "3",
+    "gtids": "0,1",
+    "job_account": "bdhi-delta-gpu",
+    "job_cpus_per_node": "8",
+    "job_end_time": "1742591102",
+    "job_gid": "202",
+    "job_gpus": "0,1,3",
+    "job_id": "8381941",
+    "job_name": "hyena_benchmark",
+    "job_nodelist": "gpua024",
+    "job_num_nodes": "1",
+    "job_partition": "gpuA100x4",
+    "job_qos": "bdhi-delta-gpu",
+    "job_start_time": "1742418302",
+    "job_uid": "74153",
+    "job_user": "pmaldonadocatala",
+    "jobid": "8381941",
+    "launch_node_ipaddr": "141.142.254.24",
+    "localid": "0",
+    "mem_per_node": "16384",
+    "mpi_type": "pmi2",
+    "nnodes": "1",
+    "nodeid": "0",
+    "nodelist": "gpua024",
+    "nprocs": "2",
+    "ntasks": "2",
+    "ntasks_per_node": "2",
+    "prio_process": "0",
+    "procid": "0",
+    "srun_comm_host": "141.142.254.24",
+    "srun_comm_port": "41475",
+    "step_gpus": "0,1,3",
+    "step_id": "0",
+    "step_launcher_port": "41475",
+    "step_nodelist": "gpua024",
+    "step_num_nodes": "1",
+    "step_num_tasks": "2",
+    "step_tasks_per_node": "2",
+    "stepid": "0",
+    "submit_dir": "/projects/bdhi/benchmarks_hyena_dna",
+    "submit_host": "dt-login04.delta.ncsa.illinois.edu",
+    "task_pid": "3700337",
+    "tasks_per_node": "2",
+    "topology_addr": "ss00.ss06.gpua024",
+    "topology_addr_pattern": "switch.switch.node",
+    "tres_bind": "gres/gpu:closest",
+    "tres_per_task": "cpu:4",
+    "umask": "0022"
+  },
+  "cudaVersion": "12.4"
+}
