@@ -1452,7 +1452,13 @@ def run_train(rank, world_size, device):
     # Dataset metadata
     dataset_metadata = {
         'dummy_mouse_enhancers_ensembl': {'max_length': 1000, 'n_classes': 2},
+        'demo_coding_vs_intergenomic_seqs': {'max_length': 200, 'n_classes': 2},
+        'demo_human_or_worm': {'max_length': 200, 'n_classes': 2},
         'human_enhancers_cohn': {'max_length': 500, 'n_classes': 2},
+        'human_enhancers_ensembl': {'max_length': 300, 'n_classes': 2},
+        'human_ensembl_regulatory': {'max_length': 400, 'n_classes': 3},
+        'human_nontata_promoters': {'max_length': 300, 'n_classes': 2},
+        'human_ocr_ensembl': {'max_length': 400, 'n_classes': 2},
     }
     
     # Model configurations

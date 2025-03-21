@@ -3,7 +3,7 @@
 #SBATCH --output="benchmark.out.%j.%N.out"
 #SBATCH --partition=gpuA100x4
 #SBATCH --mem=16G
-#SBATCH --nodes=1
+#SBATCH --nodes=3
 #SBATCH --ntasks-per-node=2
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=3
