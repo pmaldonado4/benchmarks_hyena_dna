@@ -1230,23 +1230,13 @@ def string_reverse_complement(seq):
 
 class GenomicBenchmarkDataset(torch.utils.data.Dataset):
 
-    '''
-    Loop thru bed file, retrieve (chr, start, end), query fasta file for sequence.
-    Returns a generator that retrieves the sequence.
-
-    Genomic Benchmarks Dataset, from:
-    https://github.com/ML-Bioinfo-CEITEC/genomic_benchmarks
-
-
-    '''
-
     def __init__(
         self,
         split,
         max_length,
         dataset_name='human_enhancers_cohn',
         d_output=2, # default binary classification
-        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks", # default for colab
+        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks/Users/pablo-admin/Library/CloudStorage/Dropbox-GreggLab/Pablo Maldonado/GenomicsDeepLearning/Pablo/benchmark_test/data/", # default for colab
         tokenizer=None,
         tokenizer_name=None,
         use_padding=None,
@@ -1254,7 +1244,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         rc_aug=False,
         return_augs=False,
     ):
-
+        print(f"Initializing GenomicBenchmarkDataset for {dataset_name} - {split} split")
         self.max_length = max_length
         self.use_padding = use_padding
         self.tokenizer_name = tokenizer_name
@@ -1264,26 +1254,96 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self.d_output = d_output  # needed for decoder to grab
         self.rc_aug = rc_aug
 
+        # Create base directory if it doesn't exist
+        base_dir = Path(dest_path)
+        print(f"Creating base directory at: {base_dir}")
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        # Download dataset with proper synchronization
+        print(f"Checking if dataset {dataset_name} is downloaded...")
         if not is_downloaded(dataset_name, cache_path=dest_path):
-            print("downloading {} to {}".format(dataset_name, dest_path))
-            download_dataset(dataset_name, version=0, dest_path=dest_path)
+            print(f"Downloading {dataset_name} to {dest_path}")
+            try:
+                download_dataset(dataset_name, version=0, dest_path=dest_path)
+                print(f"Successfully downloaded {dataset_name}")
+            except Exception as e:
+                print(f"Error downloading dataset: {e}")
+                raise
         else:
-            print("already downloaded {}-{}".format(split, dataset_name))
+            print(f"Dataset {dataset_name} already downloaded")
 
         # use Path object
         base_path = Path(dest_path) / dataset_name / split
+        print(f"Looking for split directory at: {base_path}")
+        
+        # Ensure the split directory exists
+        if not base_path.exists():
+            print(f"Error: Split directory {split} not found in {base_path}")
+            print("Available directories:", list((Path(dest_path) / dataset_name).iterdir()))
+            raise FileNotFoundError(f"Split directory {split} not found")
 
+        print("Starting to collect file paths and labels...")
         self.all_paths = []
         self.all_labels = []
         label_mapper = {}
 
-        for i, x in enumerate(base_path.iterdir()):
-            label_mapper[x.stem] = i
+        # List all directories in the split folder
+        try:
+            print(f"Processing directories in {base_path}")
+            for i, x in enumerate(base_path.iterdir()):
+                if x.is_dir():  # Only process directories
+                    print(f"Found label directory: {x.stem}")
+                    label_mapper[x.stem] = i
 
-        for label_type in label_mapper.keys():
-            for x in (base_path / label_type).iterdir():
-                self.all_paths.append(x)
-                self.all_labels.append(label_mapper[label_type])
+            print(f"Found {len(label_mapper)} label directories")
+            for label_type in label_mapper.keys():
+                label_dir = base_path / label_type
+                if label_dir.exists():
+                    print(f"Processing files in {label_dir}")
+                    try:
+                        # List all files first
+                        files = list(label_dir.iterdir())
+                        total_files = len(files)
+                        print(f"Found {total_files} files in {label_dir}")
+                        
+                        # Process files in chunks
+                        chunk_size = 1000
+                        for i in range(0, total_files, chunk_size):
+                            chunk = files[i:i + chunk_size]
+                            print(f"Processing files {i+1}-{min(i+chunk_size, total_files)} of {total_files}")
+                            
+                            for x in chunk:
+                                if x.is_file():  # Only process files
+                                    try:
+                                        self.all_paths.append(x)
+                                        self.all_labels.append(label_mapper[label_type])
+                                    except Exception as e:
+                                        print(f"Error processing file {x}: {e}")
+                                        continue
+                            
+                            # Log progress
+                            print(f"Processed {len(self.all_paths)} files so far")
+                            
+                    except Exception as e:
+                        print(f"Error listing files in {label_dir}: {e}")
+                        continue
+                else:
+                    print(f"Warning: Label directory {label_dir} not found")
+
+            if not self.all_paths:
+                print(f"Warning: No files found in {base_path}")
+                print("Available directories:", list(base_path.iterdir()))
+                raise FileNotFoundError(f"No files found in {base_path}")
+
+            print(f"Successfully loaded {len(self.all_paths)} files with {len(set(self.all_labels))} unique labels")
+
+        except Exception as e:
+            print(f"Error processing dataset: {e}")
+            print(f"Base path: {base_path}")
+            print(f"Directory exists: {base_path.exists()}")
+            if base_path.exists():
+                print("Contents:", list(base_path.iterdir()))
+            raise
 
     def __len__(self):
         return len(self.all_paths)
@@ -1401,7 +1461,7 @@ def log_results_to_csv(dataset_name, model_name, accuracy, loss, train_size, tes
         ])
 
 def main():
-    """Main function to handle distributed training setup."""
+    """Main function for single GPU training."""
     # Set random seeds for reproducibility
     torch.manual_seed(42)
     np.random.seed(42)
@@ -1410,80 +1470,54 @@ def main():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-    # Initialize rank and world_size
-    rank = int(os.environ.get("SLURM_PROCID", 0))
-    world_size = int(os.environ.get("SLURM_NTASKS", 1))
-    local_rank = int(os.environ.get("SLURM_LOCALID", 0))
-    
-    if rank == 0:
-        print("Starting distributed training...")
-    
-    # Initialize distributed training
-    if world_size > 1:
-        # Set up device
-        torch.cuda.set_device(local_rank)
-        device = torch.device(f"cuda:{local_rank}")
-        
-        # Initialize distributed process group with gloo backend
-        try:
-            dist.init_process_group(
-                backend="gloo",  # Use gloo instead of nccl
-                init_method="env://",
-                world_size=world_size,
-                rank=rank,
-                timeout=datetime.timedelta(minutes=30)  # Increase timeout
-            )
-        except Exception as e:
-            print(f"Error initializing distributed process group: {e}")
-            print("Falling back to single GPU training")
-            world_size = 1
-            rank = 0
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    else:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Set up device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    if torch.cuda.is_available():
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
     
     # Run training
-    run_train(rank, world_size, device)
+    run_train(device)
 
-def run_train(rank, world_size, device):
+def run_train(device):
     """
     Run training on specified datasets with specified models.
     """
-    # Dataset metadata
-    dataset_metadata = {
-        'dummy_mouse_enhancers_ensembl': {'max_length': 1000, 'n_classes': 2},
-        'demo_coding_vs_intergenomic_seqs': {'max_length': 200, 'n_classes': 2},
-        'demo_human_or_worm': {'max_length': 200, 'n_classes': 2},
-        'human_enhancers_cohn': {'max_length': 500, 'n_classes': 2},
-        'human_enhancers_ensembl': {'max_length': 300, 'n_classes': 2},
-        'human_ensembl_regulatory': {'max_length': 400, 'n_classes': 3},
-        'human_nontata_promoters': {'max_length': 300, 'n_classes': 2},
-        'human_ocr_ensembl': {'max_length': 400, 'n_classes': 2},
-    }
-    
-    # Model configurations
-    model_configs = {
-        'hyenadna-tiny-1k-seqlen': {
-            'pretrained': True,
-            'config': '/projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-tiny-1k-seqlen/config.json'
-        },
-        'hyenadna-metabolic-1k': {
-            'pretrained': True,
-            'config': '/projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-metabolic-1k/config.json'
+    try:
+        # Dataset metadata
+        dataset_metadata = {
+            'demo_coding_vs_intergenomic_seqs': {'max_length': 200, 'n_classes': 2},
+            'demo_human_or_worm': {'max_length': 200, 'n_classes': 2},
+            'human_enhancers_cohn': {'max_length': 500, 'n_classes': 2},
+            'human_enhancers_ensembl': {'max_length': 300, 'n_classes': 2},
+            'human_ensembl_regulatory': {'max_length': 400, 'n_classes': 3},
+            'human_nontata_promoters': {'max_length': 300, 'n_classes': 2},
+            'human_ocr_ensembl': {'max_length': 400, 'n_classes': 2},
         }
-    }
-    
-    # Training hyperparameters
-    num_epochs = 100
-    batch_size = 32  # Reduced batch size to avoid dropping too many samples
-    learning_rate = 6e-4
-    weight_decay = 0.1
-    rc_aug = True
-    add_eos = False
-    use_head = True
-    
-    # Initialize wandb only on rank 0
-    if rank == 0:
+        
+        # Model configurations
+        model_configs = {
+            'hyenadna-tiny-1k-seqlen': {
+                'pretrained': True,
+                'config': '/projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-tiny-1k-seqlen/config.json'
+            },
+            'hyenadna-metabolic-1k': {
+                'pretrained': True,
+                'config': '/projects/bdhi/benchmarks_hyena_dna/checkpoints/hyenadna-metabolic-1k/config.json'
+            }
+        }
+        
+        # Training hyperparameters
+        num_epochs = 100
+        batch_size = 32
+        learning_rate = 6e-4
+        weight_decay = 0.1
+        rc_aug = True
+        add_eos = False
+        use_head = True
+        
+        print("Initializing wandb...")
+        # Initialize wandb
         wandb.init(
             project="hyena-dna-benchmarks",
             config={
@@ -1493,70 +1527,75 @@ def run_train(rank, world_size, device):
                 "weight_decay": weight_decay,
                 "rc_aug": rc_aug,
                 "add_eos": add_eos,
-                "world_size": world_size,
                 "model_configs": model_configs,
                 "dataset_metadata": dataset_metadata,
                 "random_seed": 42
             }
         )
-    
-    # Store dataset splits for reuse across models
-    dataset_splits = {}
-    
-    for dataset_name, metadata in dataset_metadata.items():
-        if rank == 0:
+        
+        # Store dataset splits for reuse across models
+        dataset_splits = {}
+        
+        for dataset_name, metadata in dataset_metadata.items():
             print(f"\n{'='*50}")
             print(f"Training on dataset: {dataset_name}")
             print(f"{'='*50}")
-        
-        max_length = metadata['max_length']
-        n_classes = metadata['n_classes']
-        
-        # Create tokenizer and datasets
-        tokenizer = CharacterTokenizer(
-            characters=['A', 'C', 'G', 'T', 'N'],
-            model_max_length=max_length + 2,
-            add_special_tokens=False,
-            padding_side='left'
-        )
-        
-        # Create datasets only once per dataset
-        if dataset_name not in dataset_splits:
-            ds_train = GenomicBenchmarkDataset(
-                max_length=max_length,
-                use_padding=True,
-                split='train',
-                tokenizer=tokenizer,
-                dataset_name=dataset_name,
-                rc_aug=rc_aug,
-                add_eos=add_eos
+            
+            max_length = metadata['max_length']
+            n_classes = metadata['n_classes']
+            
+            print("Creating tokenizer...")
+            # Create tokenizer and datasets
+            tokenizer = CharacterTokenizer(
+                characters=['A', 'C', 'G', 'T', 'N'],
+                model_max_length=max_length + 2,
+                add_special_tokens=False,
+                padding_side='left'
             )
             
-            ds_test = GenomicBenchmarkDataset(
-                max_length=max_length,
-                use_padding=True,
-                split='test',
-                tokenizer=tokenizer,
-                dataset_name=dataset_name,
-                rc_aug=rc_aug,
-                add_eos=add_eos
-            )
+            # Create datasets only once per dataset
+            if dataset_name not in dataset_splits:
+                try:
+                    print(f"Initializing dataset: {dataset_name}")
+                    ds_train = GenomicBenchmarkDataset(
+                        max_length=max_length,
+                        use_padding=True,
+                        split='train',
+                        tokenizer=tokenizer,
+                        dataset_name=dataset_name,
+                        rc_aug=rc_aug,
+                        add_eos=add_eos
+                    )
+                    
+                    print("Initializing test dataset...")
+                    ds_test = GenomicBenchmarkDataset(
+                        max_length=max_length,
+                        use_padding=True,
+                        split='test',
+                        tokenizer=tokenizer,
+                        dataset_name=dataset_name,
+                        rc_aug=rc_aug,
+                        add_eos=add_eos
+                    )
+                    
+                    # Store datasets for reuse
+                    dataset_splits[dataset_name] = {
+                        'train': ds_train,
+                        'test': ds_test
+                    }
+                    
+                except Exception as e:
+                    print(f"Error initializing dataset {dataset_name}: {e}")
+                    continue
+            else:
+                print(f"Using cached dataset splits for {dataset_name}")
+                ds_train = dataset_splits[dataset_name]['train']
+                ds_test = dataset_splits[dataset_name]['test']
             
-            # Store datasets for reuse
-            dataset_splits[dataset_name] = {
-                'train': ds_train,
-                'test': ds_test
-            }
-        else:
-            ds_train = dataset_splits[dataset_name]['train']
-            ds_test = dataset_splits[dataset_name]['test']
-        
-        if rank == 0:
             print(f"Dataset sizes - Train: {len(ds_train)}, Test: {len(ds_test)}")
-            print(f"Effective batch size per GPU: {batch_size // world_size}")
+            print(f"Batch size: {batch_size}")
             
-            # Add warning if batch size might be too large
-            if batch_size // world_size > len(ds_train) or batch_size // world_size > len(ds_test):
+            if batch_size > len(ds_train) or batch_size > len(ds_test):
                 print("Warning: Batch size may be too large for dataset size!")
             
             wandb.log({
@@ -1564,175 +1603,147 @@ def run_train(rank, world_size, device):
                 "dataset/test_size": len(ds_test),
                 "dataset/max_length": max_length,
                 "dataset/n_classes": n_classes,
-                "training/batch_size_per_gpu": batch_size // world_size
+                "training/batch_size": batch_size
             })
-        
-        # Create distributed samplers with fixed seeds
-        train_sampler = DistributedSampler(
-            ds_train, 
-            num_replicas=world_size, 
-            rank=rank,
-            seed=42,
-            shuffle=True  # Explicitly set shuffle
-        )
-        test_sampler = DistributedSampler(
-            ds_test, 
-            num_replicas=world_size, 
-            rank=rank,
-            seed=42,
-            shuffle=False  # No shuffle for test set
-        )
-        
-        train_loader = DataLoader(
-            ds_train, 
-            batch_size=batch_size // world_size,
-            sampler=train_sampler,
-            num_workers=4,
-            pin_memory=True,
-            drop_last=False  # Changed to False to keep all samples
-        )
-        
-        test_loader = DataLoader(
-            ds_test, 
-            batch_size=batch_size // world_size,
-            sampler=test_sampler,
-            num_workers=4,
-            pin_memory=True,
-            drop_last=False  # Changed to False to keep all samples
-        )
-        
-        if rank == 0:
+            
+            print("Creating data loaders...")
+            # Create data loaders
+            train_loader = DataLoader(
+                ds_train, 
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=4,
+                pin_memory=True,
+                drop_last=False
+            )
+            
+            test_loader = DataLoader(
+                ds_test, 
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=4,
+                pin_memory=True,
+                drop_last=False
+            )
+            
             print(f"Number of batches - Train: {len(train_loader)}, Test: {len(test_loader)}")
-        
-        for model_name, model_config in model_configs.items():
-            if rank == 0:
+            
+            for model_name, model_config in model_configs.items():
                 print(f"\nInitializing model: {model_name}")
                 wandb.log({"model/name": model_name})
-            
-            # Initialize model
-            if model_config['pretrained']:
-                if model_config['config']:
-                    with open(model_config['config'], 'r') as f:
-                        backbone_cfg = json.load(f)
-                else:
-                    backbone_cfg = None
-                    
-                model = HyenaDNAPreTrainedModel.from_pretrained(
-                    '/projects/bdhi/benchmarks_hyena_dna/checkpoints/',
-                    model_name,
-                    download=False,
-                    config=backbone_cfg,
-                    device=device,
-                    use_head=use_head,
-                    n_classes=n_classes
-                )
-            else:
-                model = HyenaDNAModel(**backbone_cfg, use_head=use_head, n_classes=n_classes)
-                model = model.to(device)
-            
-            # Wrap model in DDP
-            if world_size > 1:
-                model = DDP(model, device_ids=[rank], output_device=rank)
-            
-            loss_fn = nn.CrossEntropyLoss()
-            optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-            
-            best_accuracy = 0
-            best_loss = float('inf')
-            
-            if rank == 0:
-                print("\nStarting training...")
-                print(f"{'Epoch':^6} {'Train Loss':^12} {'Test Loss':^12} {'Accuracy':^10}")
-                print("-" * 42)
-            
-            for epoch in range(num_epochs):
-                if world_size > 1:
-                    train_sampler.set_epoch(epoch)
                 
-                # Training
-                model.train()
-                train_loss = 0
-                for batch_idx, (data, target) in enumerate(train_loader):
-                    data, target = data.to(device), target.to(device)
-                    optimizer.zero_grad()
-                    output = model(data)
-                    loss = loss_fn(output, target.squeeze())
-                    loss.backward()
-                    optimizer.step()
-                    train_loss += loss.item()
+                try:
+                    # Initialize model
+                    if model_config['pretrained']:
+                        print("Loading pretrained model configuration...")
+                        if model_config['config']:
+                            with open(model_config['config'], 'r') as f:
+                                backbone_cfg = json.load(f)
+                        else:
+                            backbone_cfg = None
+                            
+                        print("Loading pretrained model weights...")
+                        model = HyenaDNAPreTrainedModel.from_pretrained(
+                            '/projects/bdhi/benchmarks_hyena_dna/checkpoints/',
+                            model_name,
+                            download=False,
+                            config=backbone_cfg,
+                            device=device,
+                            use_head=use_head,
+                            n_classes=n_classes
+                        )
+                    else:
+                        model = HyenaDNAModel(**backbone_cfg, use_head=use_head, n_classes=n_classes)
+                        model = model.to(device)
                     
-                    # Log batch-level metrics on rank 0
-                    if rank == 0 and batch_idx % 10 == 0:
+                    print("Initializing loss function and optimizer...")
+                    loss_fn = nn.CrossEntropyLoss().to(device)
+                    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+                    
+                    best_accuracy = 0
+                    best_loss = float('inf')
+                    
+                    print("\nStarting training...")
+                    print(f"{'Epoch':^6} {'Train Loss':^12} {'Test Loss':^12} {'Accuracy':^10}")
+                    print("-" * 42)
+                    
+                    for epoch in range(num_epochs):
+                        # Training
+                        model.train()
+                        train_loss = 0
+                        for batch_idx, (data, target) in enumerate(train_loader):
+                            data = data.to(device)
+                            target = target.to(device)
+                            
+                            optimizer.zero_grad()
+                            output = model(data)
+                            loss = loss_fn(output, target.squeeze())
+                            loss.backward()
+                            optimizer.step()
+                            train_loss += loss.item()
+                            
+                            # Log batch-level metrics
+                            if batch_idx % 10 == 0:
+                                wandb.log({
+                                    f"train/batch_loss": loss.item(),
+                                    "train/epoch": epoch + 1,
+                                    "train/batch": batch_idx
+                                })
+                        
+                        # Average training loss
+                        train_loss /= len(train_loader)
+                        
+                        # Testing
+                        test_loss, accuracy = test(model, device, test_loader, loss_fn)
+                        
+                        print(f"{epoch+1:^6d} {train_loss:^12.4f} {test_loss:^12.4f} {accuracy:^10.2f}%")
+                        
+                        # Log epoch-level metrics
                         wandb.log({
-                            f"train/batch_loss": loss.item(),
-                            "train/epoch": epoch + 1,
-                            "train/batch": batch_idx
+                            "train/epoch_loss": train_loss,
+                            "test/epoch_loss": test_loss,
+                            "test/accuracy": accuracy,
+                            "train/epoch": epoch + 1
                         })
-                
-                # Average training loss
-                train_loss /= len(train_loader)
-                
-                # Testing
-                test_loss, accuracy = test(model, device, test_loader, loss_fn)
-                
-                # Gather results from all processes
-                if world_size > 1:
-                    test_loss_tensor = torch.tensor([test_loss], device=device)
-                    accuracy_tensor = torch.tensor([accuracy], device=device)
-                    train_loss_tensor = torch.tensor([train_loss], device=device)
-                    dist.all_reduce(test_loss_tensor, op=dist.ReduceOp.SUM)
-                    dist.all_reduce(accuracy_tensor, op=dist.ReduceOp.SUM)
-                    dist.all_reduce(train_loss_tensor, op=dist.ReduceOp.SUM)
-                    test_loss = test_loss_tensor.item() / world_size
-                    accuracy = accuracy_tensor.item() / world_size
-                    train_loss = train_loss_tensor.item() / world_size
-                
-                if rank == 0:
-                    print(f"{epoch+1:^6d} {train_loss:^12.4f} {test_loss:^12.4f} {accuracy:^10.2f}%")
+                        
+                        if accuracy > best_accuracy:
+                            best_accuracy = accuracy
+                            best_loss = test_loss
+                            print(f"New best accuracy: {best_accuracy:.2f}%")
+                            # Log best metrics
+                            wandb.log({
+                                "best/accuracy": best_accuracy,
+                                "best/test_loss": best_loss,
+                                "best/epoch": epoch + 1
+                            })
                     
-                    # Log epoch-level metrics
+                    print(f"\nCompleted {dataset_name} with {model_name}")
+                    print(f"Best accuracy: {best_accuracy:.2f}%, Loss: {best_loss:.4f}")
+                    log_results_to_csv(
+                        dataset_name, 
+                        model_name, 
+                        best_accuracy, 
+                        best_loss,
+                        len(ds_train),
+                        len(ds_test)
+                    )
+                    
+                    # Log final metrics
                     wandb.log({
-                        "train/epoch_loss": train_loss,
-                        "test/epoch_loss": test_loss,
-                        "test/accuracy": accuracy,
-                        "train/epoch": epoch + 1
+                        "final/accuracy": best_accuracy,
+                        "final/test_loss": best_loss,
+                        "final/epoch": num_epochs
                     })
                     
-                    if accuracy > best_accuracy:
-                        best_accuracy = accuracy
-                        best_loss = test_loss
-                        print(f"New best accuracy: {best_accuracy:.2f}%")
-                        # Log best metrics
-                        wandb.log({
-                            "best/accuracy": best_accuracy,
-                            "best/test_loss": best_loss,
-                            "best/epoch": epoch + 1
-                        })
-            
-            if rank == 0:
-                print(f"\nCompleted {dataset_name} with {model_name}")
-                print(f"Best accuracy: {best_accuracy:.2f}%, Loss: {best_loss:.4f}")
-                log_results_to_csv(
-                    dataset_name, 
-                    model_name, 
-                    best_accuracy, 
-                    best_loss,
-                    len(ds_train),
-                    len(ds_test)
-                )
-                
-                # Log final metrics
-                wandb.log({
-                    "final/accuracy": best_accuracy,
-                    "final/test_loss": best_loss,
-                    "final/epoch": num_epochs
-                })
-    
-    if world_size > 1:
-        dist.destroy_process_group()
-    
-    if rank == 0:
+                except Exception as e:
+                    print(f"Error during model training for {model_name}: {e}")
+                    continue
+        
         wandb.finish()
+        
+    except Exception as e:
+        print(f"Fatal error in run_train: {e}")
+        raise
 
 if __name__ == "__main__":
     main()
