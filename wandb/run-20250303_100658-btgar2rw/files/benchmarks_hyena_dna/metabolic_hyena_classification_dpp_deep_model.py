@@ -1,1 +1,0 @@
-/projects/bdhi/benchmarks_hyena_dna/metabolic_hyena_classification_dpp_deep_model.py
