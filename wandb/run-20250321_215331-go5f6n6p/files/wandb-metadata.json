@@ -1,0 +1,376 @@
+{
+    "os": "Linux-4.18.0-477.86.1.el8_8.x86_64-x86_64-with-glibc2.2.5",
+    "python": "3.8.18",
+    "heartbeatAt": "2025-03-22T02:53:32.428618",
+    "startedAt": "2025-03-22T02:53:31.983152",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "benchmarks_multidataset.py",
+    "codePathLocal": "benchmarks_multidataset.py",
+    "codePath": "benchmarks_multidataset.py",
+    "git": {
+        "remote": "https://pmaldonado4:@github.com/pmaldonado4/benchmarks_hyena_dna.git",
+        "commit": "cf7aa9df73019a7b54406543f232b5a2c9e9362a"
+    },
+    "email": "pablo.maldonado@utah.edu",
+    "root": "/projects/bdhi/benchmarks_hyena_dna",
+    "host": "gpua052.delta.ncsa.illinois.edu",
+    "username": "pmaldonadocatala",
+    "executable": "/projects/bdhi/pmaldonadocatala/poetry_envs/hyena-dna-CQmhwyTM-py3.8/bin/python3",
+    "cpu_count": 64,
+    "cpu_count_logical": 64,
+    "cpu_freq": {
+        "current": 2482.8136406250014,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.447,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.893,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.402,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 125.80996704101562,
+            "used": 11.595237731933594
+        }
+    },
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "gpu_count": 3,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA A100-SXM4-40GB",
+            "memory_total": 42949672960
+        },
+        {
+            "name": "NVIDIA A100-SXM4-40GB",
+            "memory_total": 42949672960
+        },
+        {
+            "name": "NVIDIA A100-SXM4-40GB",
+            "memory_total": 42949672960
+        }
+    ],
+    "memory": {
+        "total": 251.61993789672852
+    }
+}

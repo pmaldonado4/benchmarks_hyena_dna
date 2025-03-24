@@ -1,0 +1,368 @@
+{
+    "os": "Linux-4.18.0-477.81.1.el8_8.x86_64-x86_64-with-glibc2.28",
+    "python": "3.11.6",
+    "heartbeatAt": "2025-02-24T18:36:29.589768",
+    "startedAt": "2025-02-24T18:36:29.223381",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/projects/bdhi/benchmarks_hyena_dna/deep_metabolic_hyena_classification.py",
+    "codePathLocal": "deep_metabolic_hyena_classification.py",
+    "codePath": "deep_metabolic_hyena_classification.py",
+    "git": {
+        "remote": "https://pmaldonado4:@github.com/pmaldonado4/benchmarks_hyena_dna.git",
+        "commit": "8d9b0e456da411dc1c296a29b2d631f6d16fce15"
+    },
+    "email": "pablo.maldonado@utah.edu",
+    "root": "/projects/bdhi/benchmarks_hyena_dna",
+    "host": "gpub052.delta.ncsa.illinois.edu",
+    "username": "pmaldonadocatala",
+    "executable": "/projects/bdhi/pmaldonadocatala/poetry_envs/hyena-pretrained-CQmhwyTM-py3.11/bin/python3",
+    "cpu_count": 64,
+    "cpu_count_logical": 64,
+    "cpu_freq": {
+        "current": 2905.870187499999,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3205.176,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.728,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.897,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.308,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.145,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.561,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.715,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.731,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.479,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.561,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.312,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.23,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.062,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.562,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.727,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.299,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.664,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.627,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.659,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.64,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.718,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.859,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.449,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.392,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.555,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.309,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.726,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.803,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.894,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.227,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.063,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.719,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.894,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3242.81,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 3243.228,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2445.272,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 125.80997085571289,
+            "used": 9.729400634765625
+        }
+    },
+    "gpu": "NVIDIA A40",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA A40",
+            "memory_total": 48305799168
+        }
+    ],
+    "memory": {
+        "total": 251.61994171142578
+    }
+}

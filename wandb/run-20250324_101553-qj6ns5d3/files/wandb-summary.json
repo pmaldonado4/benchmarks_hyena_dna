@@ -1,0 +1,1 @@
+{"dataset/train_size": 41686, "dataset/test_size": 13896, "dataset/max_length": 500, "dataset/n_classes": 2, "training/batch_size": 32, "_timestamp": 1742830236.2773573, "_runtime": 882.8975484371185, "_step": 1, "model/name": "hyenadna-tiny-1k-seqlen", "_wandb": {"runtime": 887}}

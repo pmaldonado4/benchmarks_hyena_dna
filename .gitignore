@@ -17,4 +17,4 @@ __pycache__/
 *.out
 *.err
 # Ignore VS Code settings (optional)
-.vscode/
+.vscode/wandb/
