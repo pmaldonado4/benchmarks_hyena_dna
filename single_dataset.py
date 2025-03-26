@@ -1256,93 +1256,67 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
 
         # Create base directory if it doesn't exist
         base_dir = Path(dest_path)
-        print(f"Creating base directory at: {base_dir}")
         base_dir.mkdir(parents=True, exist_ok=True)
 
         # Download dataset with proper synchronization
-        print(f"Checking if dataset {dataset_name} is downloaded...")
         if not is_downloaded(dataset_name, cache_path=dest_path):
             print(f"Downloading {dataset_name} to {dest_path}")
             try:
                 download_dataset(dataset_name, version=0, dest_path=dest_path)
-                print(f"Successfully downloaded {dataset_name}")
             except Exception as e:
                 print(f"Error downloading dataset: {e}")
                 raise
-        else:
-            print(f"Dataset {dataset_name} already downloaded")
 
         # use Path object
         base_path = Path(dest_path) / dataset_name / split
-        print(f"Looking for split directory at: {base_path}")
         
         # Ensure the split directory exists
         if not base_path.exists():
             print(f"Error: Split directory {split} not found in {base_path}")
-            print("Available directories:", list((Path(dest_path) / dataset_name).iterdir()))
             raise FileNotFoundError(f"Split directory {split} not found")
 
-        print("Starting to collect file paths and labels...")
         self.all_paths = []
         self.all_labels = []
         label_mapper = {}
 
         # List all directories in the split folder
         try:
-            print(f"Processing directories in {base_path}")
             for i, x in enumerate(base_path.iterdir()):
                 if x.is_dir():  # Only process directories
-                    print(f"Found label directory: {x.stem}")
                     label_mapper[x.stem] = i
 
-            print(f"Found {len(label_mapper)} label directories")
             for label_type in label_mapper.keys():
                 label_dir = base_path / label_type
                 if label_dir.exists():
-                    print(f"Processing files in {label_dir}")
                     try:
                         # List all files first
                         files = list(label_dir.iterdir())
                         total_files = len(files)
-                        print(f"Found {total_files} files in {label_dir}")
                         
                         # Process files in chunks
                         chunk_size = 1000
                         for i in range(0, total_files, chunk_size):
                             chunk = files[i:i + chunk_size]
-                            print(f"Processing files {i+1}-{min(i+chunk_size, total_files)} of {total_files}")
-                            
                             for x in chunk:
                                 if x.is_file():  # Only process files
                                     try:
                                         self.all_paths.append(x)
                                         self.all_labels.append(label_mapper[label_type])
                                     except Exception as e:
-                                        print(f"Error processing file {x}: {e}")
                                         continue
-                            
-                            # Log progress
-                            print(f"Processed {len(self.all_paths)} files so far")
                             
                     except Exception as e:
                         print(f"Error listing files in {label_dir}: {e}")
                         continue
-                else:
-                    print(f"Warning: Label directory {label_dir} not found")
 
             if not self.all_paths:
                 print(f"Warning: No files found in {base_path}")
-                print("Available directories:", list(base_path.iterdir()))
                 raise FileNotFoundError(f"No files found in {base_path}")
 
             print(f"Successfully loaded {len(self.all_paths)} files with {len(set(self.all_labels))} unique labels")
 
         except Exception as e:
             print(f"Error processing dataset: {e}")
-            print(f"Base path: {base_path}")
-            print(f"Directory exists: {base_path.exists()}")
-            if base_path.exists():
-                print("Contents:", list(base_path.iterdir()))
             raise
 
     def __len__(self):
@@ -1503,7 +1477,7 @@ def run_train(device):
     """
     try:
         # Dataset configuration
-        dataset_name = 'human_ocr_ensembl'  # Single dataset to focus on
+        dataset_name = 'human_enhancers_cohn'  # Single dataset to focus on
         max_length = 400
         n_classes = 2
         

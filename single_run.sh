@@ -34,6 +34,13 @@ export PYTHONUNBUFFERED=1
 export CUDA_VISIBLE_DEVICES=0
 export CUDA_LAUNCH_BLOCKING=1
 
+# Configure wandb for better stability in SLURM
+export WANDB_START_METHOD=thread
+export WANDB_SILENT=true
+export WANDB_DISABLE_CODE=true
+export WANDB_DISABLE_GIT=true
+export WANDB_DISABLE_ARTIFACTS=true
+
 # Run the script
 echo "Running single dataset training script..."
 python3 single_dataset.py

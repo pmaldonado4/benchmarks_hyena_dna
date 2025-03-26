@@ -1,0 +1,3 @@
+Dataset,Model,Accuracy,Loss,Epoch,Timestamp
+dummy_mouse_enhancers_ensembl,hyenadna-tiny-1k-seqlen,80.16528925619835,0.0038585226890469385,23,2025-03-26 12:10:42
+dummy_mouse_enhancers_ensembl,hyenadna-metabolic-1k,80.99173553719008,0.009246299089479052,36,2025-03-26 12:23:56

@@ -1,26 +1,43 @@
+# Set deterministic settings and seeds before any imports
+import os
+os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+os.environ['PYTHONHASHSEED'] = '42'
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+# Set random seeds
+import random
+import numpy as np
+import torch
+seed = 42
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+
 # %%
-print("Starting imports...")
+
 #@title Imports
 # for HyenaDNA specifically
-import torch
 import math
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from functools import partial
 from einops import rearrange
 from typing import Optional
-from functools import partial
 from torch import Tensor
 from torchvision.ops import StochasticDepth
 from collections import namedtuple
-import json
-import os
-import subprocess
-import transformers
-from transformers import PreTrainedModel, AutoModelForCausalLM, PretrainedConfig
-import pandas as pd
-from datetime import datetime
+from pathlib import Path
+from torch.utils.data import DataLoader
+
+# Set deterministic settings for PyTorch
+# Set environment variable for deterministic CuBLAS behavior
+os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 """# HyenaDNA
 
@@ -915,7 +932,6 @@ import subprocess
 import transformers
 from transformers import PreTrainedModel, AutoModelForCausalLM, PretrainedConfig
 import re
-from datetime import datetime
 
 def inject_substring(orig_str):
     """Hack to handle matching keys between models trained with and without
@@ -968,74 +984,6 @@ def load_weights(scratch_dict, pretrained_dict, checkpointing=False):
 
     # scratch_dict has been updated
     return scratch_dict
-
-class BestMetricsTracker:
-    def __init__(self, log_file="best_performance.json"):
-        self.log_file = log_file
-        self.best_accuracy = 0.0
-        self.best_loss = float('inf')
-        self.best_epoch = 0
-        self.best_model_state = None
-        self.load_best_metrics()
-        print(f"Initialized BestMetricsTracker with log file: {log_file}")
-        print(f"Initial best accuracy: {self.best_accuracy:.2f}%")
-        print(f"Initial best loss: {self.best_loss:.4f}")
-
-    def load_best_metrics(self):
-        try:
-            if os.path.exists(self.log_file):
-                with open(self.log_file, 'r') as f:
-                    data = json.load(f)
-                    self.best_accuracy = data.get('best_accuracy', 0.0)
-                    self.best_loss = data.get('best_loss', float('inf'))
-                    self.best_epoch = data.get('best_epoch', 0)
-                    print(f"Loaded existing metrics from {self.log_file}")
-            else:
-                print(f"No existing metrics file found at {self.log_file}")
-        except Exception as e:
-            print(f"Error loading metrics: {str(e)}")
-            self.best_accuracy = 0.0
-            self.best_loss = float('inf')
-            self.best_epoch = 0
-
-    def update(self, accuracy, loss, epoch, model_state, dataset_name, model_name):
-        is_better = False
-        print(f"\nChecking metrics update:")
-        print(f"Current accuracy: {accuracy:.2f}% (best: {self.best_accuracy:.2f}%)")
-        print(f"Current loss: {loss:.4f} (best: {self.best_loss:.4f})")
-        
-        if accuracy > self.best_accuracy or (accuracy == self.best_accuracy and loss < self.best_loss):
-            self.best_accuracy = accuracy
-            self.best_loss = loss
-            self.best_epoch = epoch
-            self.best_model_state = model_state
-            is_better = True
-
-            # Save best metrics to file
-            metrics = {
-                'best_accuracy': self.best_accuracy,
-                'best_loss': self.best_loss,
-                'best_epoch': self.best_epoch,
-                'dataset_name': dataset_name,
-                'model_name': model_name,
-                'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            try:
-                with open(self.log_file, 'w') as f:
-                    json.dump(metrics, f, indent=4)
-                print(f"\nNew best performance achieved!")
-                print(f"Accuracy: {self.best_accuracy:.2f}%")
-                print(f"Loss: {self.best_loss:.4f}")
-                print(f"Epoch: {self.best_epoch}")
-                print(f"Dataset: {dataset_name}")
-                print(f"Model: {model_name}")
-                print(f"Metrics saved to {self.log_file}\n")
-            except Exception as e:
-                print(f"Error saving metrics: {str(e)}")
-        else:
-            print("No improvement in metrics, skipping save")
-
-        return is_better
 
 class HyenaDNAPreTrainedModel(PreTrainedModel):
     """
@@ -1093,6 +1041,14 @@ class HyenaDNAPreTrainedModel(PreTrainedModel):
         # scratch model has now been updated
         scratch_model.load_state_dict(state_dict)
         print("Loaded pretrained weights ok!")
+        
+        # Debug prints
+        print("\nModel state verification:")
+        print(f"First layer weight mean: {scratch_model.backbone.embeddings.word_embeddings.weight.mean().item():.4f}")
+        print(f"First layer weight std: {scratch_model.backbone.embeddings.word_embeddings.weight.std().item():.4f}")
+        print(f"First layer weight device: {scratch_model.backbone.embeddings.word_embeddings.weight.device}")
+        print(f"First layer weight dtype: {scratch_model.backbone.embeddings.word_embeddings.weight.dtype}")
+        
         return scratch_model
 
 """# Data pipeline
@@ -1262,7 +1218,6 @@ There are 8 datasets to choose from.
 
 """
 
-from random import random
 import numpy as np
 from pathlib import Path
 from torch.utils.data import DataLoader
@@ -1276,7 +1231,7 @@ def exists(val):
     return val is not None
 
 def coin_flip():
-    return random() > 0.5
+    return random.random() > 0.5
 
 
 string_complement_map = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a'}
@@ -1310,7 +1265,7 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         max_length,
         dataset_name='dummy_mouse_enhancers_ensembl',
         d_output=2, # default binary classification
-        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks/Users/pablo-admin/Library/CloudStorage/Dropbox-GreggLab/Pablo Maldonado/GenomicsDeepLearning/Pablo/benchmark_test/data/", # default for colab
+        dest_path="/work/hdd/bdhi/pmaldonadocatala/genomic_benchmarks/", # default for colab
         tokenizer=None,
         tokenizer_name=None,
         use_padding=None,
@@ -1318,7 +1273,15 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         rc_aug=False,
         return_augs=False,
     ):
-
+        # Debug prints
+        print(f"\nInitializing dataset:")
+        print(f"Split: {split}")
+        print(f"Dataset name: {dataset_name}")
+        print(f"Max length: {max_length}")
+        print(f"Use padding: {use_padding}")
+        print(f"RC augmentation: {rc_aug}")
+        print(f"Add EOS: {add_eos}")
+        
         self.max_length = max_length
         self.use_padding = use_padding
         self.tokenizer_name = tokenizer_name
@@ -1341,26 +1304,25 @@ class GenomicBenchmarkDataset(torch.utils.data.Dataset):
         self.all_labels = []
         label_mapper = {}
 
-        for i, x in enumerate(base_path.iterdir()):
+        for i, x in enumerate(sorted(base_path.iterdir())):
             label_mapper[x.stem] = i
 
         for label_type in label_mapper.keys():
             for x in (base_path / label_type).iterdir():
                 self.all_paths.append(x)
                 self.all_labels.append(label_mapper[label_type])
+                
+        # Debug prints
+        print(f"Total samples: {len(self.all_paths)}")
+        print(f"Label distribution: {torch.bincount(torch.tensor(self.all_labels)).tolist()}")
 
     def __len__(self):
         return len(self.all_paths)
 
     def __getitem__(self, idx):
         txt_path = self.all_paths[idx]
-        try:
-            with open(txt_path, "r") as f:
-                content = f.read()
-        except UnicodeDecodeError as e:
-            print(f"Error reading file: {txt_path}")
-            print(f"Error details: {str(e)}")
-            raise
+        with open(txt_path, "r") as f:
+            content = f.read()
         x = content
         y = self.all_labels[idx]
 
@@ -1403,10 +1365,43 @@ def train(model, device, train_loader, optimizer, epoch, loss_fn, log_interval=1
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
+        
+        # Debug prints for first batch of each epoch
+        if batch_idx == 0:
+            print(f"\nEpoch {epoch} first batch:")
+            print(f"Input shape: {data.shape}")
+            print(f"Input dtype: {data.dtype}")
+            print(f"Input device: {data.device}")
+            print(f"Target shape: {target.shape}")
+            print(f"Target values: {target[:5].flatten().tolist()}")
+        
         optimizer.zero_grad()
         output = model(data)
+        
+        # Debug prints for first batch of each epoch
+        if batch_idx == 0:
+            print(f"Output shape: {output.shape}")
+            print(f"Output dtype: {output.dtype}")
+            print(f"Output device: {output.device}")
+            print(f"Output values: {output[:5].softmax(dim=1).tolist()}")
+        
         loss = loss_fn(output, target.squeeze())
         loss.backward()
+        
+        # Log gradient norms
+        total_norm = 0
+        for p in model.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)
+                total_norm += param_norm.item() ** 2
+        total_norm = total_norm ** 0.5
+        if batch_idx % 100 == 0:
+            print(f"Gradient norm: {total_norm:.6f}")
+        
+        # Add gradient clipping
+        max_grad_norm = 1.0
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+        
         optimizer.step()
         if batch_idx % log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -1427,23 +1422,21 @@ def test(model, device, test_loader, loss_fn):
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
-    accuracy = 100. * correct / len(test_loader.dataset)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), accuracy))
-    
-    return accuracy, test_loss
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
 
 import json
 import os
 import subprocess
 import transformers
 from transformers import PreTrainedModel, AutoModelForCausalLM, PretrainedConfig
-
-print("Starting training...")
-# %%
-
 def run_train():
+    '''
+    Main entry point for training.  Select the dataset name and metadata, as
+    well as model and training args, and you're off to the genomic races!
+
     ### GenomicBenchmarks Metadata
     # there are 8 datasets in this suite, choose 1 at a time, with their corresponding settings
     # name                                num_seqs        num_classes     median len    std
@@ -1455,126 +1448,114 @@ def run_train():
     # human_ensembl_regulatory            289061          3               401           184.3
     # human_nontata_promoters             36131           2               251           0
     # human_ocr_ensembl                   174756          2               315           108.1
-
-    # List of models to train
-    models_to_train = ['hyenadna-tiny-1k-seqlen', 'hyenadna-metabolic-1k']
+    '''
+    # Create a generator for DataLoader
+    generator = torch.Generator().manual_seed(seed)
     
-    # Create results DataFrame
-    results_df = pd.DataFrame(columns=['model_name', 'dataset_name', 'best_accuracy', 'best_loss', 'best_epoch', 'timestamp'])
+    # experiment settings:
+    num_epochs = 10  # ~100 seems fine
+    max_length = 350  # max len of sequence of dataset (of what you want)
+    use_padding = True
+    dataset_name = 'human_nontata_promoters'
+    batch_size = 256
+    learning_rate = 6e-4  # good default for Hyena
+    rc_aug = True  # reverse complement augmentation
+    add_eos = False  # add end of sentence token
+    weight_decay = 0.1
     
-    # Get current timestamp for unique filenames
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    for pretrained_model_name in models_to_train:
-        print(f"\nStarting training with model: {pretrained_model_name}")
-        
-        # experiment settings:
-        num_epochs = 100  # ~100 seems fine
-        max_length = 300  # max len of sequence of dataset (of what you want)
-        use_padding = True
-        dataset_name = 'human_ocr_ensembl'
-        batch_size = 128
-        learning_rate = 6e-4  # good default for Hyena
-        rc_aug = True  # reverse complement augmentation
-        add_eos = False  # add end of sentence token
-        weight_decay = 0.1
+    # for fine-tuning, only the 'tiny' model can fit on colab
+    pretrained_model_name = 'hyenadna-tiny-1k-seqlen'  # use None if training from scratch
 
-        # you can override with your own backbone config here if you want,
-        # otherwise we'll load the HF one by default
-        backbone_cfg = None
+    # we need these for the decoder head, if using
+    use_head = True
+    n_classes = 2
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("Using device:", device)
+    # you can override with your own backbone config here if you want,
+    # otherwise we'll load the HF one by default
+    backbone_cfg = None
 
-        # Initialize metrics tracker with timestamped log file
-        metrics_tracker = BestMetricsTracker(log_file=f"best_performance_{pretrained_model_name}_{timestamp}.json")
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print("Using device:", device)
 
-        # instantiate the model (pretrained here)
+    # instantiate the model (pretrained here)
+    if pretrained_model_name in ['hyenadna-tiny-1k-seqlen']:
+        # use the pretrained Huggingface wrapper instead
         model = HyenaDNAPreTrainedModel.from_pretrained(
             '/projects/bdhi/benchmarks_hyena_dna/checkpoints/',
             pretrained_model_name,
             download=False,
             config=backbone_cfg,
             device=device,
-            use_head=True,
-            n_classes=2,
+            use_head=use_head,
+            n_classes=n_classes,
         )
 
-        # create tokenizer
-        tokenizer = CharacterTokenizer(
-            characters=['A', 'C', 'G', 'T', 'N'],  # add DNA characters, N is uncertain
-            model_max_length=max_length + 2,  # to account for special tokens, like EOS
-            add_special_tokens=False,  # we handle special tokens elsewhere
-            padding_side='left', # since HyenaDNA is causal, we pad on the left
-        )
+    # from scratch
+    else:
+        model = HyenaDNAModel(**backbone_cfg, use_head=use_head, n_classes=n_classes)
 
-        # create datasets
-        ds_train = GenomicBenchmarkDataset(
-            max_length = max_length,
-            use_padding = use_padding,
-            split = 'train',
-            tokenizer=tokenizer,
-            dataset_name=dataset_name,
-            rc_aug=rc_aug,
-            add_eos=add_eos,
-        )
+    # create tokenizer
+    tokenizer = CharacterTokenizer(
+        characters=['A', 'C', 'G', 'T', 'N'],  # add DNA characters, N is uncertain
+        model_max_length=max_length + 2,  # to account for special tokens, like EOS
+        add_special_tokens=False,  # we handle special tokens elsewhere
+        padding_side='left', # since HyenaDNA is causal, we pad on the left
+    )
 
-        ds_test = GenomicBenchmarkDataset(
-            max_length = max_length,
-            use_padding = use_padding,
-            split = 'test',
-            tokenizer=tokenizer,
-            dataset_name=dataset_name,
-            rc_aug=rc_aug,
-            add_eos=add_eos,
-        )
+    # create datasets
+    ds_train = GenomicBenchmarkDataset(
+        max_length = max_length,
+        use_padding = use_padding,
+        split = 'train',
+        tokenizer=tokenizer,
+        dataset_name=dataset_name,
+        rc_aug=rc_aug,
+        add_eos=add_eos,
+    )
 
-        train_loader = DataLoader(ds_train, batch_size=batch_size, shuffle=True)
-        test_loader = DataLoader(ds_test, batch_size=batch_size, shuffle=False)
+    ds_test = GenomicBenchmarkDataset(
+        max_length = max_length,
+        use_padding = use_padding,
+        split = 'test',
+        tokenizer=tokenizer,
+        dataset_name=dataset_name,
+        rc_aug=rc_aug,
+        add_eos=add_eos,
+    )
 
-        # loss function
-        loss_fn = nn.CrossEntropyLoss()
+    # Create data loaders with consistent generator for reproducibility
+    generator = torch.Generator().manual_seed(seed)
+    train_loader = DataLoader(ds_train, batch_size=batch_size, shuffle=True, generator=generator)
+    test_loader = DataLoader(ds_test, batch_size=batch_size, shuffle=False, generator=generator)
 
-        # create optimizer
-        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    # loss function
+    loss_fn = nn.CrossEntropyLoss()
 
-        model.to(device)
+    # Initialize optimizer with more conservative settings
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=1e-4,  # Reduced learning rate
+        weight_decay=0.01,  # Increased weight decay
+        eps=1e-8  # Increased epsilon for better numerical stability
+    )
 
-        for epoch in range(num_epochs):
-            train(model, device, train_loader, optimizer, epoch, loss_fn)
-            accuracy, test_loss = test(model, device, test_loader, loss_fn)
-            
-            # Update best metrics
-            metrics_tracker.update(
-                accuracy=accuracy,
-                loss=test_loss,
-                epoch=epoch,
-                model_state=None,  # We don't want to save model state
-                dataset_name=dataset_name,
-                model_name=pretrained_model_name
-            )
-        
-        # After training is complete, add results to DataFrame
-        results_df = pd.concat([results_df, pd.DataFrame({
-            'model_name': [pretrained_model_name],
-            'dataset_name': [dataset_name],
-            'best_accuracy': [metrics_tracker.best_accuracy],
-            'best_loss': [metrics_tracker.best_loss],
-            'best_epoch': [metrics_tracker.best_epoch],
-            'timestamp': [datetime.now().strftime("%Y-%m-%d %H:%M:%S")]
-        })], ignore_index=True)
-        
-        # Save results to CSV after each model
-        results_df.to_csv('training_results.csv', index=False)
-        print(f"\nResults saved to training_results.csv")
-        
-        print(f"\nCompleted training with model: {pretrained_model_name}")
-        print(f"Best accuracy: {metrics_tracker.best_accuracy:.2f}%")
-        print(f"Best loss: {metrics_tracker.best_loss:.4f}")
-        print(f"Best epoch: {metrics_tracker.best_epoch}")
+    model.to(device)
+
+    for epoch in range(num_epochs):
+        train(model, device, train_loader, optimizer, epoch, loss_fn)
+        test(model, device, test_loader, loss_fn)
+        optimizer.step()
+
+print("PyTorch:", torch.__version__)
+print("Transformers:", transformers.__version__)
+print("CUDA available:", torch.cuda.is_available())
+print("CUDA device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU")
+print("float32 precision:", torch.get_float32_matmul_precision())
+print("cuDNN deterministic:", torch.backends.cudnn.deterministic)
+print("Seed:", torch.initial_seed())
+
+
+
 
 # launch it!
 run_train()  # uncomment to run
-
-
-
