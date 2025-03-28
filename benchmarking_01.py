@@ -1451,13 +1451,13 @@ def run_train():
     ### GenomicBenchmarks Metadata
     # there are 8 datasets in this suite, choose 1 at a time, with their corresponding settings
     # name                                num_seqs        num_classes     median len    std
-    # dummy_mouse_enhancers_ensembl       1210            2               2381          984.4
-    # demo_coding_vs_intergenomic_seqs    100_000         2               200           0
-    # demo_human_or_worm                  100_000         2               200           0
-    # human_enhancers_cohn                27791           2               500           0
+    # dummy_mouse_enhancers_ensembl       1210            2               2381          984.4 ## done
+    # demo_coding_vs_intergenomic_seqs    100_000         2               200           0 ## done
+    # demo_human_or_worm                  100_000         2               200           0 ## done
+    # human_enhancers_cohn                27791           2               500           0 ## done
     # human_enhancers_ensembl             154842          2               269           122.6
     # human_ensembl_regulatory            289061          3               401           184.3
-    # human_nontata_promoters             36131           2               251           0
+    # human_nontata_promoters             36131           2               251           0 ## done
     # human_ocr_ensembl                   174756          2               315           108.1
     '''
     # Create a generator for DataLoader
@@ -1465,9 +1465,9 @@ def run_train():
     
     # experiment settings:
     num_epochs = 100  # ~100 seems fine
-    max_length = 500  # max len of sequence of dataset (of what you want)
+    max_length = 300  # max len of sequence of dataset (of what you want)
     use_padding = True
-    dataset_name = 'human_enhancers_cohn'
+    dataset_name = 'human_enhancers_ensembl'
     batch_size = 128
     learning_rate = 6e-4  # good default for Hyena
     rc_aug = True  # reverse complement augmentation
@@ -1475,7 +1475,7 @@ def run_train():
     weight_decay = 0.1
     
     # List of models to train
-    pretrained_models = ['hyenadna-tiny-1k-seqlen', 'hyenadna-metabolic-1k']
+    pretrained_models = ['hyenadna-tiny-1k-seqlen','hyenadna-metabolic-1k']
     
     # for fine-tuning, only the 'tiny' model can fit on colab
     use_head = True

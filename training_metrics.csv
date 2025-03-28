@@ -1,3 +1,12 @@
 Dataset,Model,Accuracy,Loss,Epoch,Timestamp
 dummy_mouse_enhancers_ensembl,hyenadna-tiny-1k-seqlen,80.16528925619835,0.0038585226890469385,23,2025-03-26 12:10:42
 dummy_mouse_enhancers_ensembl,hyenadna-metabolic-1k,80.99173553719008,0.009246299089479052,36,2025-03-26 12:23:56
+human_enhancers_cohn,hyenadna-tiny-1k-seqlen,73.34484743811169,0.004282776671678909,6,2025-03-26 17:31:59
+human_nontata_promoters,hyenadna-tiny-1k-seqlen,94.81957051140137,0.0035200172416512843,91,2025-03-26 18:03:47
+demo_human_or_worm,hyenadna-tiny-1k-seqlen,96.556,0.0007192608783394099,9,2025-03-26 19:22:36
+demo_coding_vs_intergenomic_seqs,hyenadna-tiny-1k-seqlen,89.764,0.001988086253404617,5,2025-03-26 20:03:58
+human_nontata_promoters,hyenadna-metabolic-1k,96.97808279831747,0.002302895114694741,84,2025-03-26 20:09:53
+human_enhancers_cohn,hyenadna-metabolic-1k,74.12204951065054,0.004052381385621766,1,2025-03-26 23:09:32
+demo_coding_vs_intergenomic_seqs,hyenadna-metabolic-1k,91.656,0.007307994023561477,98,2025-03-27 01:53:10
+human_enhancers_ensembl,hyenadna-tiny-1k-seqlen,87.85276073619632,0.005609442655708007,95,2025-03-27 05:53:41
+human_ocr_ensembl,hyenadna-tiny-1k-seqlen,78.1815060654612,0.003705082864121786,17,2025-03-28 07:56:28

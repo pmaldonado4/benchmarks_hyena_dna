@@ -9,7 +9,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --gpu-bind=closest
 #SBATCH --account=bdhi-delta-gpu
-#SBATCH -t 02:00:00
+#SBATCH -t 48:00:00
 #SBATCH -e slurm-%j.err
 #SBATCH -o slurm-%j.out
 
